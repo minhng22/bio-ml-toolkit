@@ -102,7 +102,7 @@ def display_page(pathname):
     elif pathname == '/meldna-score':
         return meldna_score_page()
     else:
-        return html.Div("Explore advanced machine learning tools for predictive modeling, biological data analysis and natural language application.", style={'textAlign': 'center'})
+        return html.Div("🌟 Explore advanced machine learning tools for predictive modeling and data analysis. 🌟", style={'textAlign': 'center'})
 
 @app.callback(
     Output('predict-button', 'n_clicks'),
