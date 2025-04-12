@@ -10,50 +10,58 @@ app.layout = html.Div([
     html.Button("☰", id="menu-toggle", style={
         'position': 'fixed',
         'top': '10px',
-        'left': '10px',  # Moved the button back to its original position
+        'left': '10px',
         'zIndex': 1000,
         'backgroundColor': '#fff',
         'border': '1px solid #ddd',
         'borderRadius': '5px',
         'padding': '10px',
         'cursor': 'pointer',
-        'transition': 'left 0.3s ease'  # Smooth transition for button position
+        'transition': 'left 0.3s ease'
     }),
     html.Nav([
-        dcc.Link("Predict Stem Cell Differentiation", href="/stem-cell", style={
+        dcc.Link(html.Span("🔬 MELDNa Score Prediction", style={
+            'marginLeft': '5px'
+        }), href="/meldna-score", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
-            'fontSize': '18px',
+            'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link("Generate 3D Drugs", href="/3d-drugs", style={
+        dcc.Link(html.Span("🔬 Predict Stem Cell Differentiation", style={
+            'marginLeft': '5px'
+        }), href="/stem-cell", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
-            'fontSize': '18px',
+            'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link("Convert Natural Language Query", href="/nl-query", style={
+        dcc.Link(html.Span("🔬 Generate 3D Drugs", style={
+            'marginLeft': '5px'
+        }), href="/3d-drugs", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
-            'fontSize': '18px',
+            'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link("MELDNa Score Prediction", href="/meldna-score", style={
+        dcc.Link(html.Span("💻 Convert Natural Language Query", style={
+            'marginLeft': '5px'
+        }), href="/nl-query", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
-            'fontSize': '18px',
+            'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
-        })
+        }),
     ], id="menu-bar", style={
         'display': 'flex',
         'flexDirection': 'column',
         'alignItems': 'flex-start',
         'backgroundColor': 'white',
-        'padding': '50px 10px 10px',  # Added top padding to move menu options down
+        'padding': '50px 10px 10px', 
         'boxShadow': '0 2px 5px rgba(0, 0, 0, 0.1)',
         'border': '1px solid transparent',
         'borderImage': 'linear-gradient(to bottom, #ffffff, #e0e0e0)',
@@ -65,7 +73,8 @@ app.layout = html.Div([
         'left': 0,
         'width': '200px',
         'transition': 'transform 0.3s ease',
-        'transform': 'translateX(0)'
+        'transform': 'translateX(0)',
+        'fontSize': '10px'
     }),
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content', style={
@@ -75,18 +84,16 @@ app.layout = html.Div([
         'borderRadius': '5px',
         'boxShadow': '0 2px 5px rgba(0, 0, 0, 0.1)',
         'maxWidth': '800px',
-        'marginLeft': '220px',  # Adjusted to account for the menu bar width
+        'marginLeft': '220px',
         'marginRight': 'auto',
         'fontFamily': 'Arial, sans-serif'
     })
 ], style={
     'fontFamily': '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    'fontSize': '16px',
     'lineHeight': '1.5',
     'color': '#333'
 })
 
-# Define the layout for each tool page
 def stem_cell_page():
     return html.Div([
         html.H1("Predict Stem Cell Differentiation", style={'textAlign': 'center'})
@@ -127,6 +134,5 @@ app.clientside_callback(
     [Input('menu-toggle', 'n_clicks')]
 )
 
-# Run the app
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8050)
