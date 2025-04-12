@@ -8,6 +8,24 @@ def stem_cell_page():
                 html.P("This page allows you to predict stem cells differentiation.", style={'textAlign': 'left', 'marginLeft': '10px', 'fontSize': '16px'})
             ], style={'flex': '0.5', 'padding': '10px'}),
             html.Div([
+                html.Div([
+                    html.Label("Choose a Model:", style={'fontSize': '16px'}),
+                    dcc.Dropdown(
+                        id='model-dropdown',
+                        options=[
+                            {'label': 'ResNet50', 'value': 'resnet50'},
+                            {'label': 'InceptionV3', 'value': 'inceptionv3'},
+                            {'label': 'EfficientNet', 'value': 'efficientnet'},
+                            {'label': 'VGG16', 'value': 'vgg16'}
+                        ],
+                        placeholder="Select a model",
+                        style={
+                            'width': '100%',
+                            'marginBottom': '10px',
+                            'fontSize': '16px'
+                        }
+                    )
+                ], style={'marginBottom': '20px'}),
                 html.Label("Upload Stem Cell Pictures:", style={'fontSize': '16px'}),
                 dcc.Upload(
                     id='upload-stem-cell',
