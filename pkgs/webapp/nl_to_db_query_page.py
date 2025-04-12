@@ -23,7 +23,8 @@ def nl_to_db_query_page():
                         style={
                             'width': '100%',
                             'marginBottom': '10px',
-                            'fontSize': '16px'
+                            'fontSize': '16px',
+                            'borderRadius': '5px',
                         }
                     )
                 ], style={'marginBottom': '20px'}),
@@ -35,7 +36,8 @@ def nl_to_db_query_page():
                         'width': '100%',
                         'height': '80px',
                         'marginBottom': '10px',
-                        'fontSize': '16px'
+                        'fontSize': '16px',
+                        'borderRadius': '5px',
                     }
                 ),
                 html.Label("Enter your database schema:", style={'fontSize': '16px'}),
@@ -46,7 +48,8 @@ def nl_to_db_query_page():
                         'width': '100%',
                         'height': '80px',
                         'marginBottom': '10px',
-                        'fontSize': '16px'
+                        'fontSize': '16px',
+                        'borderRadius': '5px',
                     }
                 ),
                 html.Button("Generate Query", id="generate-query-button", style={
