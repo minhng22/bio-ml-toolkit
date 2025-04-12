@@ -4,6 +4,7 @@ from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
 from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files
 from pkgs.experiment.stemcellprediction import main
+from pkgs.webapp.nl_to_db_query_page import nl_to_db_query_page
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -22,7 +23,7 @@ app.layout = html.Div([
         'transition': 'left 0.3s ease'
     }),
     html.Nav([
-        dcc.Link(html.Span("🔬 MELDNa Score Prediction", style={
+        dcc.Link(html.Span("🔬 Predict MELDNa Score", style={
             'marginLeft': '5px'
         }), href="/meldna-score", style={
             'margin': '10px 0',
@@ -31,7 +32,7 @@ app.layout = html.Div([
             'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link(html.Span("🔬 Predict Stem Cell Differentiation", style={
+        dcc.Link(html.Span("🔬 Classify Stem Cell Differentiation", style={
             'marginLeft': '5px'
         }), href="/stem-cell", style={
             'margin': '10px 0',
@@ -40,7 +41,7 @@ app.layout = html.Div([
             'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link(html.Span("💻 Convert Natural Language Query", style={
+        dcc.Link(html.Span("💻 NL to DB Query", style={
             'marginLeft': '5px'
         }), href="/nl-query", style={
             'margin': '10px 0',
@@ -104,7 +105,7 @@ def display_page(pathname):
     elif pathname == '/3d-drugs':
         return drugs_page()
     elif pathname == '/nl-query':
-        return nl_query_page()
+        return nl_to_db_query_page()
     elif pathname == '/meldna-score':
         return meldna_score_page()
     else:
