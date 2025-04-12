@@ -1,6 +1,7 @@
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
+from meldna_page import meldna_score_page
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -34,6 +35,13 @@ app.layout = html.Div([
             'fontFamily': 'Arial, sans-serif'
         }),
         dcc.Link("Convert Natural Language Query", href="/nl-query", style={
+            'margin': '10px 0',
+            'textDecoration': 'none',
+            'color': 'black',
+            'fontSize': '18px',
+            'fontFamily': 'Arial, sans-serif'
+        }),
+        dcc.Link("MELDNa Score Prediction", href="/meldna-score", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
@@ -102,6 +110,8 @@ def display_page(pathname):
         return drugs_page()
     elif pathname == '/nl-query':
         return nl_query_page()
+    elif pathname == '/meldna-score':
+        return meldna_score_page()
     else:
         return html.Div("Welcome to the ML Toolkit Showcase!", style={'textAlign': 'center'})
 
