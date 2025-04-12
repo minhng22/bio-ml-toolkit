@@ -40,15 +40,6 @@ app.layout = html.Div([
             'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link(html.Span("🔬 Generate 3D Drugs", style={
-            'marginLeft': '5px'
-        }), href="/3d-drugs", style={
-            'margin': '10px 0',
-            'textDecoration': 'none',
-            'color': 'black',
-            'fontSize': '14px',
-            'fontFamily': 'Arial, sans-serif'
-        }),
         dcc.Link(html.Span("💻 Convert Natural Language Query", style={
             'marginLeft': '5px'
         }), href="/nl-query", style={
