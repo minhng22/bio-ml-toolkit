@@ -3,7 +3,7 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
 from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files
-from pkgs.experiment.stemcellprediction import main
+from pkgs.stemcellprediction.experiment import main
 from pkgs.webapp.nl_to_db_query_page import nl_to_db_query_page
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
@@ -88,11 +88,6 @@ app.layout = html.Div([
     'color': '#333'
 })
 
-def drugs_page():
-    return html.Div([
-        html.H1("Generate 3D Drugs", style={'textAlign': 'center'})
-    ])
-
 def nl_query_page():
     return html.Div([
         html.H1("Convert Natural Language Query", style={'textAlign': 'center'})
@@ -102,14 +97,12 @@ def nl_query_page():
 def display_page(pathname):
     if pathname == '/stem-cell':
         return stem_cell_page()
-    elif pathname == '/3d-drugs':
-        return drugs_page()
     elif pathname == '/nl-query':
         return nl_to_db_query_page()
     elif pathname == '/meldna-score':
         return meldna_score_page()
     else:
-        return html.Div("Welcome to the ML Toolkit Showcase!", style={'textAlign': 'center'})
+        return html.Div("Explore advanced machine learning tools for predictive modeling, biological data analysis and natural language application.", style={'textAlign': 'center'})
 
 @app.callback(
     Output('predict-button', 'n_clicks'),
@@ -140,4 +133,4 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8050)
+    app.run(debug=False, host='0.0.0.0', port=8050)

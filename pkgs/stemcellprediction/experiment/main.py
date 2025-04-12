@@ -1,4 +1,4 @@
-from pkgs.experiment.stemcellprediction import resnet50
+from pkgs.stemcellprediction.experiment import resnet50
 from pkgs.webapp.stem_cell_page import uploaded_images
 
 def run_model(selected_model):

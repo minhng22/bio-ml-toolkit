@@ -22,7 +22,7 @@ def stem_cell_page():
         html.H1("Predict Stem Cell Differentiation", style={'textAlign': 'center', 'fontSize': '24px'}),
         html.Div([
             html.Div([
-                html.P("This page allows you to predict stem cells differentiation.", style={'textAlign': 'left', 'marginLeft': '10px', 'fontSize': '16px'})
+                html.P("StemCellNet provides a sophisticated tool to predict stem cell differentiation. Upload images of stem cells and leverage state-of-the-art machine learning models to classify their differentiation states with precision.", style={'textAlign': 'left', 'fontSize': '16px', 'marginLeft': '10px'})
             ], style={'flex': '0.5', 'padding': '10px'}),
             html.Div([
                 html.Div([
