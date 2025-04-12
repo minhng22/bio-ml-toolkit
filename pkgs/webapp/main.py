@@ -4,7 +4,6 @@ from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
 from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files
 from pkgs.stemcellprediction.experiment import main
-from pkgs.webapp.nl_to_db_query_page import nl_to_db_query_page
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -97,8 +96,6 @@ def nl_query_page():
 def display_page(pathname):
     if pathname == '/stem-cell':
         return stem_cell_page()
-    elif pathname == '/nl-query':
-        return nl_to_db_query_page()
     elif pathname == '/meldna-score':
         return meldna_score_page()
     else:
