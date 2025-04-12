@@ -1,8 +1,9 @@
 import dash
 from dash import dcc, html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
-from pkgs.webapp.stem_cell_page import stem_cell_page
+from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files
+from pkgs.experiment.stemcellprediction import main
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -117,6 +118,22 @@ def display_page(pathname):
         return meldna_score_page()
     else:
         return html.Div("Welcome to the ML Toolkit Showcase!", style={'textAlign': 'center'})
+
+@app.callback(
+    Output('predict-button', 'n_clicks'),
+    [Input('predict-button', 'n_clicks')],
+    [State('model-dropdown', 'value')]
+)
+def call_prediction_script(n_clicks, selected_model):
+    if n_clicks:
+        main.run_model(selected_model)
+    return None
+
+app.callback(
+    Output('upload-stem-cell', 'children'),
+    [Input('upload-stem-cell', 'contents')],
+    [State('upload-stem-cell', 'filename')]
+)(update_uploaded_files)
 
 app.clientside_callback(
     "function(pathname) {\n        const links = document.querySelectorAll('nav a');\n        if (!links) return pathname;\n        links.forEach(link => {\n            if (link.getAttribute('href') === pathname) {\n                link.style.border = '2px solid black';\n                link.style.borderRadius = '10px';\n                link.style.padding = '8px';\n                link.style.backgroundColor = '#f0f0f0';\n                link.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';\n            } else {\n                link.style.border = 'none';\n                link.style.padding = '0';\n                link.style.backgroundColor = 'transparent';\n                link.style.boxShadow = 'none';\n            }\n        });\n        return pathname;\n    }",
