@@ -2,6 +2,7 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
 from pkgs.webapp.meldna_page import meldna_score_page
+from pkgs.webapp.stem_cell_page import stem_cell_page
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -94,11 +95,6 @@ app.layout = html.Div([
     'color': '#333'
 })
 
-def stem_cell_page():
-    return html.Div([
-        html.H1("Predict Stem Cell Differentiation", style={'textAlign': 'center'})
-    ])
-
 def drugs_page():
     return html.Div([
         html.H1("Generate 3D Drugs", style={'textAlign': 'center'})
@@ -135,4 +131,4 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=8050)
+    app.run(debug=True, host='0.0.0.0', port=8050)
