@@ -40,15 +40,6 @@ app.layout = html.Div([
             'fontSize': '14px',
             'fontFamily': 'Arial, sans-serif'
         }),
-        dcc.Link(html.Span("💻 NL to DB Query", style={
-            'marginLeft': '5px'
-        }), href="/nl-query", style={
-            'margin': '10px 0',
-            'textDecoration': 'none',
-            'color': 'black',
-            'fontSize': '14px',
-            'fontFamily': 'Arial, sans-serif'
-        }),
     ], id="menu-bar", style={
         'display': 'flex',
         'flexDirection': 'column',
