@@ -78,11 +78,6 @@ app.layout = html.Div([
     'color': '#333'
 })
 
-def nl_query_page():
-    return html.Div([
-        html.H1("Convert Natural Language Query", style={'textAlign': 'center'})
-    ])
-
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/stem-cell':
@@ -91,16 +86,6 @@ def display_page(pathname):
         return meldna_score_page()
     else:
         return html.Div("🌟 Explore advanced machine learning tools for predictive modeling and data analysis. 🌟", style={'textAlign': 'center'})
-
-@app.callback(
-    Output('predict-button', 'n_clicks'),
-    [Input('predict-button', 'n_clicks')],
-    [State('model-dropdown', 'value')]
-)
-def call_prediction_script(n_clicks, selected_model):
-    if n_clicks:
-        main.run_model(selected_model)
-    return None
 
 app.callback(
     Output('upload-stem-cell', 'children'),
@@ -121,4 +106,4 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=8050)
+    app.run(debug=True, host='0.0.0.0', port=8050)

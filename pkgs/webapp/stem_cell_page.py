@@ -3,6 +3,7 @@ import base64
 import os
 from io import BytesIO
 from PIL import Image
+from pkgs.stemcellprediction.experiment.resnet50 import run_experiment
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 
@@ -71,7 +72,8 @@ def stem_cell_page():
                     'borderRadius': '5px',
                     'cursor': 'pointer',
                     'fontSize': '16px'
-                })
+                }),
+                html.Div(id='prediction-output', style={'marginTop': '20px'})
             ], style={'flex': '1', 'textAlign': 'center', 'padding': '10px'})
         ], style={'display': 'flex', 'flexDirection': 'row', 'alignItems': 'flex-start'})
     ], style={'fontFamily': 'Arial, sans-serif', 'fontSize': '16px'})
@@ -87,3 +89,31 @@ def update_uploaded_files(list_of_contents, list_of_names):
             handle_file_upload(contents, name)
         return html.Div([html.P(f"Uploaded: {', '.join(list_of_names)}")])
     return html.Div([html.P("Drag and Drop or Select Files")])
+
+@app.callback(
+    Output('prediction-output', 'children'),
+    [Input('predict-button', 'n_clicks')],
+    [State('upload-stem-cell', 'contents'), State('upload-stem-cell', 'filename')]
+)
+def update_prediction_output(n_clicks, contents, filenames):
+    if n_clicks > 0 and contents is not None:
+        image_paths = []
+        for content, filename in zip(contents, filenames):
+            _, content_string = content.split(',')
+            decoded = base64.b64decode(content_string)
+            temp_path = f"/tmp/{filename}"
+            with open(temp_path, 'wb') as f:
+                f.write(decoded)
+            image_paths.append(temp_path)
+
+        results = run_experiment(image_paths)
+        print(f"Results: {results}")
+        result_divs = []
+        for result in results:
+            result_divs.append(html.Div([
+                html.P(f"Image: {result['image_path']}", style={'fontWeight': 'bold'}),
+                html.P(f"Prediction: {result['prediction']}"),
+                html.P(f"Probabilities: {result['probabilities']}")
+            ]))
+        return html.Div(result_divs)
+    return html.Div("Upload images and click Predict.")
