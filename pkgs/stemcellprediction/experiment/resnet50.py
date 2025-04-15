@@ -8,6 +8,13 @@ def load_model():
     model.eval()
     return model
 
+def load_stem_cell_model():
+    model = resnet50(pretrained=True)
+    num_features = model.fc.in_features
+    model.fc = torch.nn.Linear(num_features, 2)
+    model.eval()
+    return model
+
 def preprocess_image(image_path):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -23,12 +30,19 @@ def predict(model, image_tensor):
         _, predicted = outputs.topk(3, 1, True, True)
     return predicted
 
+def predict_stem_cell_differentiation(model, image_tensor):
+    with torch.no_grad():
+        outputs = model(image_tensor)
+        probabilities = torch.nn.functional.softmax(outputs, dim=1)
+        _, predicted = torch.max(probabilities, 1)
+    return predicted.item(), probabilities.squeeze().tolist()
+
 def run_experiment(image_paths):
     print('image paths ', image_paths)
-    model = load_model()
+    model = load_stem_cell_model()
     for i, image_path in enumerate(image_paths):
         image_tensor = preprocess_image(image_path)
-        predictions = predict(model, image_tensor)
-        print(f"Image {i+1} predictions:")
-        for idx in predictions[0]:
-            print(f"  Class ID: {idx.item()}")
+        print(f"image tensor shape: {image_tensor.shape}")
+        prediction, probabilities = predict_stem_cell_differentiation(model, image_tensor)
+        print(f"Image {i+1} prediction: {'Differentiated' if prediction == 1 else 'Not Differentiated'}")
+        print(f"Probabilities: {probabilities}")
