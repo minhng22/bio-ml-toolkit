@@ -4,6 +4,7 @@ import os
 from io import BytesIO
 from PIL import Image
 from pkgs.stemcellprediction.experiment.main import run_model
+from pkgs.stemcellprediction.experiment.types import SupportedModel
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 
@@ -31,10 +32,10 @@ def stem_cell_page():
                     dcc.Dropdown(
                         id='model-dropdown',
                         options=[
-                            {'label': 'ResNet50', 'value': 'resnet50'},
-                            {'label': 'InceptionV3', 'value': 'inceptionv3'},
-                            {'label': 'EfficientNet', 'value': 'efficientnet'},
-                            {'label': 'VGG16', 'value': 'vgg16'}
+                            {'label': 'ResNet50 (pre-trained)', 'value': SupportedModel.PT_RESNET50.value},
+                            {'label': 'InceptionV3 (pre-trained)', 'value': SupportedModel.PT_INCEPTIONV3.value},
+                            {'label': 'EfficientNet (pre-trained)', 'value': SupportedModel.PT_EFFICIENTNET.value},
+                            {'label': 'VGG16 (pre-trained)', 'value': SupportedModel.PT_VGG16.value}
                         ],
                         placeholder="Select a model",
                         style={

@@ -32,9 +32,13 @@ def run_experiment(image_paths):
     for i, image_path in enumerate(image_paths):
         image_tensor = preprocess_image(image_path)
         prediction, probabilities = predict_stem_cell_differentiation(model, image_tensor)
+
+        print(f"Image {i+1} prediction: {'Differentiated' if prediction == 1 else 'Not Differentiated'}")
+        dif_prob = round(probabilities[1], 3) if prediction == 1 else round(probabilities[0], 3)
+        print(f"Differentiated probability: {dif_prob}")
         results.append({
             'image_path': image_path,
             'prediction': 'Differentiated' if prediction == 1 else 'Not Differentiated',
-            'probabilities': probabilities
+            'probabilities': dif_prob
         })
     return results
