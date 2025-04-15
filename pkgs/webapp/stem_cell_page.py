@@ -3,7 +3,7 @@ import base64
 import os
 from io import BytesIO
 from PIL import Image
-from pkgs.stemcellprediction.experiment.resnet50 import run_experiment
+from pkgs.stemcellprediction.experiment.main import run_model
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 
@@ -93,20 +93,12 @@ def update_uploaded_files(list_of_contents, list_of_names):
 @app.callback(
     Output('prediction-output', 'children'),
     [Input('predict-button', 'n_clicks')],
-    [State('upload-stem-cell', 'contents'), State('upload-stem-cell', 'filename')]
+    [State('upload-stem-cell', 'contents'), State('model-dropdown', 'value')]
 )
-def update_prediction_output(n_clicks, contents, filenames):
+def update_prediction_output(n_clicks, contents, selected_model):
     if n_clicks > 0 and contents is not None:
-        image_paths = []
-        for content, filename in zip(contents, filenames):
-            _, content_string = content.split(',')
-            decoded = base64.b64decode(content_string)
-            temp_path = f"/tmp/{filename}"
-            with open(temp_path, 'wb') as f:
-                f.write(decoded)
-            image_paths.append(temp_path)
-
-        results = run_experiment(image_paths)
+        print(f'Predicting for model: {selected_model} with {len(uploaded_images)} images.')
+        results = run_model(selected_model, uploaded_images)
         print(f"Results: {results}")
         result_divs = []
         for result in results:
