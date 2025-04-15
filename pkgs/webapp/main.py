@@ -60,6 +60,7 @@ app.layout = html.Div([
         'fontSize': '10px'
     }),
     dcc.Location(id='url', refresh=False),
+    dcc.Store(id='current-pathname'),
     html.Div(id='page-content', style={
         'marginTop': '30px',
         'padding': '20px',
@@ -84,7 +85,10 @@ def display_page(pathname):
     elif pathname == '/meldna-score':
         return meldna_score_page()
     else:
-        return html.Div("🌟 Explore advanced machine learning tools for predictive modeling and data analysis. 🌟", style={'textAlign': 'center'})
+        return html.Div(
+            "🌟 Explore advanced machine learning tools for predictive modeling and data analysis. 🌟",
+            style={'textAlign': 'center'}
+        )
 
 app.callback(
     Output('upload-stem-cell', 'children'),
@@ -92,20 +96,51 @@ app.callback(
     [State('upload-stem-cell', 'filename')]
 )(update_uploaded_files)
 
-@app.callback(
-    Output('predict-button', 'n_clicks'),
+app.callback(
+    Output('prediction-output', 'children'),
     [Input('predict-button', 'n_clicks')],
     [State('upload-stem-cell', 'contents'), State('model-dropdown', 'value')]
 )(update_prediction_output)
 
 app.clientside_callback(
-    "function(pathname) {\n        const links = document.querySelectorAll('nav a');\n        if (!links) return pathname;\n        links.forEach(link => {\n            if (link.getAttribute('href') === pathname) {\n                link.style.border = '2px solid black';\n                link.style.borderRadius = '10px';\n                link.style.padding = '8px';\n                link.style.backgroundColor = '#f0f0f0';\n                link.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';\n            } else {\n                link.style.border = 'none';\n                link.style.padding = '0';\n                link.style.backgroundColor = 'transparent';\n                link.style.boxShadow = 'none';\n            }\n        });\n        return pathname;\n    }",
-    Output('url', 'pathname'),
+    """
+    function(pathname) {
+        const links = document.querySelectorAll('nav a');
+        links.forEach(link => {
+            if (link.getAttribute('href') === pathname) {
+                link.style.border = '2px solid black';
+                link.style.borderRadius = '10px';
+                link.style.padding = '8px';
+                link.style.backgroundColor = '#f0f0f0';
+                link.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+            } else {
+                link.style.border = 'none';
+                link.style.padding = '0';
+                link.style.backgroundColor = 'transparent';
+                link.style.boxShadow = 'none';
+            }
+        });
+        return pathname;
+    }
+    """,
+    Output('current-pathname', 'data'),
     [Input('url', 'pathname')]
 )
 
 app.clientside_callback(
-    "function(n_clicks) {\n        const menu = document.getElementById('menu-bar');\n        if (menu) {\n            if (menu.style.transform === 'translateX(-100%)') {\n                menu.style.transform = 'translateX(0)';\n            } else {\n                menu.style.transform = 'translateX(-100%)';\n            }\n        }\n        return null;\n    }",
+    """
+    function(n_clicks) {
+        const menu = document.getElementById('menu-bar');
+        if (menu) {
+            if (menu.style.transform === 'translateX(-100%)') {
+                menu.style.transform = 'translateX(0)';
+            } else {
+                menu.style.transform = 'translateX(-100%)';
+            }
+        }
+        return null;
+    }
+    """,
     Output('menu-toggle', 'n_clicks'),
     [Input('menu-toggle', 'n_clicks')]
 )

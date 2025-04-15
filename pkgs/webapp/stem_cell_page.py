@@ -96,7 +96,7 @@ def update_uploaded_files(list_of_contents, list_of_names):
     [State('upload-stem-cell', 'contents'), State('model-dropdown', 'value')]
 )
 def update_prediction_output(n_clicks, contents, selected_model):
-    if n_clicks > 0 and contents is not None:
+    if n_clicks is not None and n_clicks > 0 and contents is not None:
         print(f'Predicting for model: {selected_model} with {len(uploaded_images)} images.')
         results = run_model(selected_model, uploaded_images)
         print(f"Results: {results}")
