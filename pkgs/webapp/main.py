@@ -3,6 +3,7 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
 from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files, update_prediction_output
+from pkgs.webapp.aging_bio_gpt_page import aging_bio_gpt_page
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -33,6 +34,15 @@ app.layout = html.Div([
         dcc.Link(html.Span("🔬 Classify Stem Cell Differentiation", style={
             'marginLeft': '5px'
         }), href="/stem-cell", style={
+            'margin': '10px 0',
+            'textDecoration': 'none',
+            'color': 'black',
+            'fontSize': '14px',
+            'fontFamily': 'Arial, sans-serif'
+        }),
+        dcc.Link(html.Span("🔬 Query Aging Biology Knowledge", style={
+            'marginLeft': '5px'
+        }), href="/aging-bio-gpt", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
@@ -84,6 +94,8 @@ def display_page(pathname):
         return stem_cell_page()
     elif pathname == '/meldna-score':
         return meldna_score_page()
+    elif pathname == '/aging-bio-gpt':
+        return aging_bio_gpt_page()
     else:
         return html.Div(
             "🌟 Explore advanced machine learning tools for predictive modeling and data analysis. 🌟",
@@ -146,4 +158,4 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=8050)
+    app.run(debug=True, host='0.0.0.0', port=8050)
