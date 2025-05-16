@@ -1,9 +1,42 @@
 import dash
+import argparse
+import logging
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
 from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files, update_prediction_output
-from pkgs.webapp.aging_bio_gpt_page import aging_bio_gpt_page
+from pkgs.webapp.aging_bio_gpt_page import aging_bio_gpt_page, update_response, clear_input
+
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def init_aging_gpt_with_samples():
+    try:
+        from pkgs.aginggpt.service import get_model_instance
+        from pkgs.aginggpt.data_loader import PubMedAbstractLoader
+        
+        logger.info("Initializing AgingGPT with sample PubMed data...")
+        model = get_model_instance()
+        loader = PubMedAbstractLoader()
+        
+        abstracts = loader.load("")
+        
+        for abstract in abstracts:
+            model.add_knowledge(abstract["content"], abstract["metadata"].get("title", "PubMed"))
+            
+        logger.info(f"Added {len(abstracts)} sample abstracts to AgingGPT knowledge base")
+        
+    except Exception as e:
+        logger.error(f"Error initializing AgingGPT with samples: {e}")
+
+parser = argparse.ArgumentParser(description='Bio ML Toolkit Server')
+parser.add_argument('--init-aging-gpt', action='store_true', 
+                    help='Initialize AgingGPT with sample data')
+args, unknown = parser.parse_known_args()
+
+if args.init_aging_gpt:
+    init_aging_gpt_with_samples()
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -158,4 +191,12 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
+    try:
+        from pkgs.aginggpt.service import get_model_instance
+        logger.info("Preloading AgingGPT model...")
+        get_model_instance()
+        logger.info("AgingGPT model loaded successfully")
+    except Exception as e:
+        logger.error(f"Error preloading AgingGPT model: {e}")
+    
     app.run(debug=True, host='0.0.0.0', port=8050)
