@@ -2,18 +2,42 @@ import logging
 from typing import List, Dict, Any
 import re
 import torch
+import os
 from transformers import pipeline
+from huggingface_hub import login
+from nltk.tokenize import sent_tokenize
+import nltk
+
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt', quiet=True)
 
 logger = logging.getLogger(__name__)
 
 class EnhancedLLMProcessor:
-    def __init__(self, model_name="meta-llama/Meta-Llama-3-8B"):
+    def __init__(self, model_name="meta-llama/Meta-Llama-3-8B", use_fallback_model=True):
         self.model_name = model_name
+        self.original_model = model_name
         logger.info(f"Initializing {model_name} LLM processor")
+        
+        try:
+            login(token=os.environ["HUGGINGFACE_HUB_TOKEN"])
+            logger.info("Successfully logged in to Hugging Face Hub")
+        except Exception as e:
+            logger.error(f"Failed to login to Hugging Face Hub: {e}")
         
         device_map = "auto" if torch.cuda.is_available() else "cpu"
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         logger.info(f"Using device: {device_map}, dtype: {torch_dtype}")
+        
+        self.fallback_models = [
+            "google/gemma-2b", 
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+            "mistralai/Mistral-7B-Instruct-v0.2"
+        ]
+
+        logger.info(f"Attempting to load model: {model_name}")
         
         try:
             self.llm_pipeline = pipeline(
@@ -25,20 +49,43 @@ class EnhancedLLMProcessor:
             logger.info(f"Successfully loaded {model_name}")
         except Exception as e:
             logger.error(f"Error loading {model_name}: {str(e)}")
-            logger.warning("Falling back to simulated mode")
             self.llm_pipeline = None
+            
+            if use_fallback_model:
+                for fallback_model in self.fallback_models:
+                    try:
+                        logger.warning(f"Attempting to load fallback model: {fallback_model}")
+                        self.llm_pipeline = pipeline(
+                            "text-generation",
+                            model=fallback_model,
+                            torch_dtype=torch_dtype,
+                            device_map=device_map,
+                        )
+                        self.model_name = fallback_model
+                        logger.info(f"Successfully loaded fallback model: {fallback_model}")
+                        break
+                    except Exception as fallback_error:
+                        logger.error(f"Error loading fallback model {fallback_model}: {str(fallback_error)}")
+                        
+            if self.llm_pipeline is None:
+                logger.warning("Falling back to simulated mode - no models could be loaded")
     
     def generate_response(self, query: str, context_docs: List[Dict[str, Any]]) -> str:
         if not context_docs:
             return "I don't have specific information about that in my aging biology knowledge base. Please ask another question related to aging."
         
-        prompt = self._prepare_prompt(query, context_docs)
+        expanded_query = self._rewrite_query(query)
+        reranked_docs = self._rerank_documents(expanded_query, context_docs)
+        filtered_docs = self._filter_and_compress_context(expanded_query, reranked_docs)
+        prompt = self._prepare_prompt(query, filtered_docs)
         
         if self.llm_pipeline:
             try:
                 response = self._generate_with_llm(prompt)
-                logger.info(f"Generated response using {self.model_name} for query: {query[:30]}...")
-                return response
+                verified_response = self._verify_response_factuality(query, response, filtered_docs)
+                
+                logger.info(f"Generated RAG response using {self.model_name} for query: {query[:30]}...")
+                return verified_response
             except Exception as e:
                 logger.error(f"Error generating with {self.model_name}: {str(e)}")
                 logger.warning("Falling back to rule-based response")
@@ -174,4 +221,159 @@ class EnhancedLLMProcessor:
             
         response += "This information represents current understanding in the field of aging biology and is subject to revision as new research emerges."
         
+        return response
+    
+    def _rewrite_query(self, query: str) -> str:
+        if self.llm_pipeline:
+            try:
+                expansion_prompt = f"""You are an expert in aging biology research. 
+Your task is to expand this search query to improve document retrieval.
+Include key scientific concepts related to the query.
+Original query: "{query}"
+Expanded query:"""
+                
+                response = self.llm_pipeline(
+                    expansion_prompt,
+                    max_length=len(expansion_prompt.split()) + 100,
+                    temperature=0.3,
+                    do_sample=True,
+                    num_return_sequences=1,
+                )
+                
+                expanded_text = response[0]['generated_text']
+                if expanded_text.startswith(expansion_prompt):
+                    expanded_text = expanded_text[len(expansion_prompt):].strip()
+                
+                logger.info(f"Original query: '{query}' -> Expanded: '{expanded_text}'")
+                return expanded_text
+            except Exception as e:
+                logger.warning(f"Query expansion failed: {e}, using original query")
+                
+        return query
+    
+    def _rerank_documents(self, query: str, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if not documents:
+            return []
+            
+        scored_docs = []
+        query_terms = set(self._extract_key_terms(query))
+        
+        for doc in documents:
+            content = doc["content"].lower()
+            doc_terms = set(re.findall(r'\b\w+\b', content))
+            
+            term_overlap = len(query_terms.intersection(doc_terms))
+            term_score = term_overlap / (len(query_terms) + 1)
+            
+            metadata_score = 0.0
+            if doc["metadata"].get("title"):
+                title_terms = set(re.findall(r'\b\w+\b', doc["metadata"].get("title", "").lower()))
+                title_overlap = len(query_terms.intersection(title_terms))
+                metadata_score = title_overlap / (len(query_terms) + 1)
+            
+            category_score = 0.0
+            if doc["metadata"].get("category"):
+                query_lower = query.lower()
+                category = doc["metadata"].get("category", "").lower()
+                
+                relevance_mappings = {
+                    "hallmark": ["hallmark", "characteristic"],
+                    "aging_mechanisms": ["mechanism", "cause", "pathway", "molecular", "cellular"],
+                    "interventions": ["intervention", "therapy", "treatment", "extend", "lifespan", "longevity"]
+                }
+                
+                for cat, terms in relevance_mappings.items():
+                    if cat == category and any(term in query_lower for term in terms):
+                        category_score = 0.5
+                        break
+            
+            final_score = (0.5 * term_score) + (0.3 * metadata_score) + (0.2 * category_score)
+            scored_docs.append((final_score, doc))
+        
+        scored_docs.sort(reverse=True, key=lambda x: x[0])
+        
+        logger.info(f"Reranked {len(documents)} documents, top score: {scored_docs[0][0] if scored_docs else 'N/A'}")
+        
+        return [doc for _, doc in scored_docs]
+        
+    def _filter_and_compress_context(self, query: str, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        if not documents:
+            return []
+            
+        max_docs = 5
+        relevance_threshold = 0.1
+        
+        filtered_docs = []
+        query_terms = set(self._extract_key_terms(query))
+        
+        for doc in documents:
+            content = doc["content"]
+            doc_terms = set(re.findall(r'\b\w+\b', content.lower()))
+            
+            relevance_score = len(query_terms.intersection(doc_terms)) / (len(query_terms) + 1)
+            
+            if relevance_score >= relevance_threshold:
+                sentences = sent_tokenize(content)
+                
+                if len(sentences) > 3:
+                    scored_sentences = []
+                    for sentence in sentences:
+                        sent_terms = set(re.findall(r'\b\w+\b', sentence.lower()))
+                        sent_relevance = len(query_terms.intersection(sent_terms)) / (len(query_terms) + 1)
+                        scored_sentences.append((sent_relevance, sentence))
+                    
+                    scored_sentences.sort(reverse=True, key=lambda x: x[0])
+                    top_sentences = [s for _, s in scored_sentences[:3]]
+                    
+                    compressed_content = " ".join(top_sentences)
+                    compressed_doc = doc.copy()
+                    compressed_doc["content"] = compressed_content
+                    filtered_docs.append(compressed_doc)
+                else:
+                    filtered_docs.append(doc)
+                    
+            if len(filtered_docs) >= max_docs:
+                break
+        
+        return filtered_docs if filtered_docs else documents[:max_docs]
+    
+    def _verify_response_factuality(self, query: str, response: str, context_docs: List[Dict[str, Any]]) -> str:
+        if not self.llm_pipeline or not response or not context_docs:
+            return response
+            
+        try:
+            verification_prompt = f"""You are a fact-checker for aging biology research.
+Review this response and verify it against the provided context.
+If there are inaccuracies, correct them. If it's accurate, leave it unchanged.
+
+Response to verify: "{response}"
+
+Context for verification:
+"""
+            
+            for i, doc in enumerate(context_docs, 1):
+                verification_prompt += f"{i}. {doc['content']}\n"
+                
+            verification_prompt += "\nVerified response:"
+            
+            verification = self.llm_pipeline(
+                verification_prompt,
+                max_length=len(verification_prompt.split()) + 512,
+                temperature=0.3,
+                do_sample=True,
+                num_return_sequences=1,
+            )
+            
+            verified_text = verification[0]['generated_text']
+            if verified_text.startswith(verification_prompt):
+                verified_text = verified_text[len(verification_prompt):].strip()
+                
+            logger.info("Response verification completed")
+            
+            if len(verified_text) > 20:
+                return verified_text
+                
+        except Exception as e:
+            logger.warning(f"Response verification failed: {e}, using original response")
+            
         return response
