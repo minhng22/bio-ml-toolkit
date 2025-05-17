@@ -1,9 +1,6 @@
-import os
-import json
 import logging
 import numpy as np
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+from typing import List, Dict, Any
 from .knowledge_base import KnowledgeBase
 
 try:

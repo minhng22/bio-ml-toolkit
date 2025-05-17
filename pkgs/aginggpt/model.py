@@ -1,5 +1,4 @@
-import os
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from dataclasses import dataclass
 import logging
 from .knowledge_base import KnowledgeBase
