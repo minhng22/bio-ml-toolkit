@@ -1,23 +1,83 @@
 import logging
 from typing import List, Dict, Any
 import re
+import torch
+from transformers import pipeline
 
 logger = logging.getLogger(__name__)
 
 class EnhancedLLMProcessor:
-    def __init__(self, model_name="simulated-aging-bio-gpt"):
+    def __init__(self, model_name="meta-llama/Meta-Llama-3-8B"):
         self.model_name = model_name
-        logger.info(f"Initialized {model_name} LLM processor")
+        logger.info(f"Initializing {model_name} LLM processor")
+        
+        device_map = "auto" if torch.cuda.is_available() else "cpu"
+        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        logger.info(f"Using device: {device_map}, dtype: {torch_dtype}")
+        
+        try:
+            self.llm_pipeline = pipeline(
+                "text-generation",
+                model=model_name,
+                torch_dtype=torch_dtype,
+                device_map=device_map,
+            )
+            logger.info(f"Successfully loaded {model_name}")
+        except Exception as e:
+            logger.error(f"Error loading {model_name}: {str(e)}")
+            logger.warning("Falling back to simulated mode")
+            self.llm_pipeline = None
     
     def generate_response(self, query: str, context_docs: List[Dict[str, Any]]) -> str:
         if not context_docs:
             return "I don't have specific information about that in my aging biology knowledge base. Please ask another question related to aging."
+        
+        prompt = self._prepare_prompt(query, context_docs)
+        
+        if self.llm_pipeline:
+            try:
+                response = self._generate_with_llm(prompt)
+                logger.info(f"Generated response using {self.model_name} for query: {query[:30]}...")
+                return response
+            except Exception as e:
+                logger.error(f"Error generating with {self.model_name}: {str(e)}")
+                logger.warning("Falling back to rule-based response")
+        
         key_terms = self._extract_key_terms(query)
-        
         response = self._build_enhanced_response(query, key_terms, context_docs)
-        
-        logger.info(f"Generated response for query: {query[:30]}...")
+        logger.info(f"Generated fallback response for query: {query[:30]}...")
         return response
+    
+    def _prepare_prompt(self, query: str, context_docs: List[Dict[str, Any]]) -> str:
+        prompt = "You are an expert in aging biology. Answer the following question based on the provided context:\n\n"
+        prompt += "Context:\n"
+        
+        for i, doc in enumerate(context_docs, 1):
+            prompt += f"{i}. {doc['content']}"
+            prompt += f" (Source: {doc['metadata'].get('source', 'Aging Research')})\n"
+        
+        prompt += f"\nQuestion: {query}\n\n"
+        prompt += "Answer:"
+        
+        return prompt
+    
+    def _generate_with_llm(self, prompt: str) -> str:
+        response = self.llm_pipeline(
+            prompt,
+            max_length=len(prompt.split()) + 512,  
+            temperature=0.7,    
+            top_p=0.9,           
+            repetition_penalty=1.1,  
+            do_sample=True,      
+            num_return_sequences=1,
+        )
+        
+        generated_text = response[0]['generated_text']
+        
+        if generated_text.startswith(prompt):
+            generated_text = generated_text[len(prompt):].strip()
+        
+        return generated_text
     
     def _extract_key_terms(self, query: str) -> List[str]:
         common_words = {"the", "a", "an", "in", "on", "at", "to", "for", "with", "by", 
