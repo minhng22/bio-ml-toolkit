@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 import re
 import torch
 import os
-from transformers import pipeline
+from transformers import pipeline, BitsAndBytesConfig
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
 import nltk
@@ -36,13 +36,21 @@ class EnhancedLLMProcessor:
         logger.info(f"Attempting to load model: {model_name}")
         
         try:
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch_dtype,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True
+            )
+            
             self.llm_pipeline = pipeline(
                 "text-generation",
                 model=model_name,
                 torch_dtype=torch_dtype,
                 device_map=device_map,
+                quantization_config=quantization_config
             )
-            logger.info(f"Successfully loaded {model_name}")
+            logger.info(f"Successfully loaded {model_name} with 4-bit quantization")
         except Exception as e:
             logger.error(f"Error loading {model_name}: {str(e)}")
             self.llm_pipeline = None
