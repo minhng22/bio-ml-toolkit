@@ -12,3 +12,4 @@ transformers>=4.30.0
 tiktoken>=0.5.1  
 nltk>=3.8  
 pypdf>=3.15.1  
+accelerate==1.7.0
