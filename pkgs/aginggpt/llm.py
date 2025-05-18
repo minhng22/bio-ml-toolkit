@@ -31,11 +31,7 @@ class EnhancedLLMProcessor:
         torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         logger.info(f"Using device: {device_map}, dtype: {torch_dtype}")
         
-        self.fallback_models = [
-            "google/gemma-2b", 
-            "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-            "mistralai/Mistral-7B-Instruct-v0.2"
-        ]
+        self.fallback_models = []
 
         logger.info(f"Attempting to load model: {model_name}")
         
