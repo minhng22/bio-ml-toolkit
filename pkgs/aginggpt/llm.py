@@ -16,7 +16,7 @@ except LookupError:
 logger = logging.getLogger(__name__)
 
 class EnhancedLLMProcessor:
-    def __init__(self, model_name="meta-llama/Llama-4-Scout-17B-16E", use_fallback_model=True):
+    def __init__(self, model_name="meta-llama/Llama-3.1-8B", use_fallback_model=True):
         self.model_name = model_name
         self.original_model = model_name
         logger.info(f"Initializing {model_name} LLM processor")
