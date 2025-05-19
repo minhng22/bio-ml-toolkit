@@ -3,8 +3,7 @@ from typing import List, Dict, Any
 import re
 import torch
 import os
-import transformers
-from transformers import BitsAndBytesConfig, AutoTokenizer
+from transformers import pipeline, BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
 import nltk
@@ -37,15 +36,16 @@ class EnhancedLLMProcessor:
         logger.info(f"Attempting to load model: {model_name}")
         
         try:
-            quantization_config = BitsAndBytesConfig(
+            _ = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch_dtype,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True
             )
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            #self.llm_pipeline = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
             
-            self.llm_pipeline = transformers.pipeline(
+            self.llm_pipeline = pipeline(
                 "text-generation",
                 model=model_name,
                 tokenizer=self.tokenizer,
@@ -64,7 +64,7 @@ class EnhancedLLMProcessor:
                 for fallback_model in self.fallback_models:
                     try:
                         logger.warning(f"Attempting to load fallback model: {fallback_model}")
-                        self.llm_pipeline = transformers.pipeline(
+                        self.llm_pipeline = pipeline(
                             "text-generation",
                             model=fallback_model,
                             torch_dtype=torch_dtype,
@@ -91,10 +91,10 @@ class EnhancedLLMProcessor:
         if self.llm_pipeline:
             try:
                 response = self._generate_with_llm(prompt)
-                logger.info(f"Generated _generate_with_llm response: {response[:30]}...")
+                logger.info(f"Generated _generate_with_llm response: {response}")
                 verified_response = self._verify_response_factuality(query, response, filtered_docs)
                 
-                logger.info(f"Generated RAG response using {self.model_name} for query: {query[:30]}...")
+                logger.info(f"Generated RAG response using {self.model_name} for query: {query}")
                 return verified_response
             except Exception as e:
                 logger.error(f"Error generating with {self.model_name}: {str(e)}")
@@ -102,7 +102,7 @@ class EnhancedLLMProcessor:
         
         key_terms = self._extract_key_terms(query)
         response = self._build_enhanced_response(query, key_terms, context_docs)
-        logger.info(f"Generated fallback response for query: {query[:30]}...")
+        logger.info(f"Generated fallback response for query: {query}")
         return response
     
     def _prepare_prompt(self, query: str, context_docs: List[Dict[str, Any]]) -> str:
