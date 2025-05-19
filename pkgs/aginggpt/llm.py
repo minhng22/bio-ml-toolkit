@@ -240,10 +240,10 @@ class EnhancedLLMProcessor:
         if self.llm_pipeline:
             try:
                 expansion_prompt = f"""You are an expert in aging biology research. 
-Your task is to expand this search query to improve document retrieval.
-Include key scientific concepts related to the query.
-Original query: "{query}"
-Expanded query:"""
+                Your task is to expand this search query to improve document retrieval.
+                Include key scientific concepts related to the query.
+                Original query: "{query}"
+                Expanded query:"""
                 
                 response = self.llm_pipeline(
                     expansion_prompt,
@@ -357,13 +357,13 @@ Expanded query:"""
             
         try:
             verification_prompt = f"""You are a fact-checker for aging biology research.
-Review this response and verify it against the provided context.
-If there are inaccuracies, correct them. If it's accurate, leave it unchanged.
+            Review this response and verify it against the provided context.
+            If there are inaccuracies, correct them. If it's accurate, leave it unchanged.
 
-Response to verify: "{response}"
+            Response to verify: "{response}"
 
-Context for verification:
-"""
+            Context for verification:
+            """
             
             for i, doc in enumerate(context_docs, 1):
                 verification_prompt += f"{i}. {doc['content']}\n"
