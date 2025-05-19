@@ -3,7 +3,8 @@ from typing import List, Dict, Any
 import re
 import torch
 import os
-from transformers import pipeline, BitsAndBytesConfig
+import transformers
+from transformers import BitsAndBytesConfig, AutoTokenizer
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
 import nltk
@@ -42,15 +43,19 @@ class EnhancedLLMProcessor:
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True
             )
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             
-            self.llm_pipeline = pipeline(
+            self.llm_pipeline = transformers.pipeline(
                 "text-generation",
                 model=model_name,
+                tokenizer=self.tokenizer,
                 torch_dtype=torch_dtype,
                 device_map=device_map,
-                quantization_config=quantization_config
             )
             logger.info(f"Successfully loaded {model_name} with 4-bit quantization")
+
+            logger.info("downloading nltk")
+            nltk.download('punkt_tab')
         except Exception as e:
             logger.error(f"Error loading {model_name}: {str(e)}")
             self.llm_pipeline = None
@@ -59,7 +64,7 @@ class EnhancedLLMProcessor:
                 for fallback_model in self.fallback_models:
                     try:
                         logger.warning(f"Attempting to load fallback model: {fallback_model}")
-                        self.llm_pipeline = pipeline(
+                        self.llm_pipeline = transformers.pipeline(
                             "text-generation",
                             model=fallback_model,
                             torch_dtype=torch_dtype,
@@ -86,6 +91,7 @@ class EnhancedLLMProcessor:
         if self.llm_pipeline:
             try:
                 response = self._generate_with_llm(prompt)
+                logger.info(f"Generated _generate_with_llm response: {response[:30]}...")
                 verified_response = self._verify_response_factuality(query, response, filtered_docs)
                 
                 logger.info(f"Generated RAG response using {self.model_name} for query: {query[:30]}...")
@@ -115,6 +121,7 @@ class EnhancedLLMProcessor:
     def _generate_with_llm(self, prompt: str) -> str:
         response = self.llm_pipeline(
             prompt,
+            truncation=True,
             max_length=len(prompt.split()) + 512,  
             temperature=0.7,    
             top_p=0.9,           
@@ -238,6 +245,7 @@ Expanded query:"""
                 
                 response = self.llm_pipeline(
                     expansion_prompt,
+                    truncation=True,
                     max_length=len(expansion_prompt.split()) + 100,
                     temperature=0.3,
                     do_sample=True,
@@ -362,6 +370,7 @@ Context for verification:
             
             verification = self.llm_pipeline(
                 verification_prompt,
+                truncation=True,
                 max_length=len(verification_prompt.split()) + 512,
                 temperature=0.3,
                 do_sample=True,
