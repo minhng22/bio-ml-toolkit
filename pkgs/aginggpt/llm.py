@@ -51,6 +51,8 @@ class EnhancedLLMProcessor:
                 tokenizer=self.tokenizer,
                 torch_dtype=torch_dtype,
                 device_map=device_map,
+                max_length=512,
+                temperature=0.7,
             )
             logger.info(f"Successfully loaded {model_name} with 4-bit quantization")
 
@@ -371,7 +373,7 @@ Context for verification:
             verification = self.llm_pipeline(
                 verification_prompt,
                 truncation=True,
-                max_length=len(verification_prompt.split()) + 512,
+                max_length=len(verification_prompt.split()),
                 temperature=0.3,
                 do_sample=True,
                 num_return_sequences=1,

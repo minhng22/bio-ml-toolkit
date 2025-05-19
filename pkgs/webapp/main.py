@@ -6,6 +6,8 @@ from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
 from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files, update_prediction_output
 from pkgs.webapp.aging_bio_gpt_page import aging_bio_gpt_page, update_response, clear_input
+from pkgs.aginggpt.service import get_model_instance
+import gc
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -192,11 +194,11 @@ app.clientside_callback(
 
 if __name__ == '__main__':
     try:
-        from pkgs.aginggpt.service import get_model_instance
+        gc.collect()
         logger.info("Preloading AgingGPT model...")
         get_model_instance()
         logger.info("AgingGPT model loaded successfully")
     except Exception as e:
         logger.error(f"Error preloading AgingGPT model: {e}")
     
-    app.run(debug=True, host='0.0.0.0', port=8050)
+    app.run(debug=False, host='0.0.0.0', port=8050)
