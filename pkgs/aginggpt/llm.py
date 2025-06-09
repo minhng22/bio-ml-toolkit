@@ -7,6 +7,7 @@ from transformers import pipeline, BitsAndBytesConfig, AutoTokenizer, AutoModelF
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
 import nltk
+import hashlib
 
 try:
     nltk.data.find('tokenizers/punkt')
@@ -15,10 +16,13 @@ except LookupError:
 
 logger = logging.getLogger(__name__)
 
+max_new_tokens = 100
+
 class EnhancedLLMProcessor:
-    def __init__(self, model_name="meta-llama/Llama-3.1-8B", use_fallback_model=True):
+    def __init__(self, model_name="meta-llama/Llama-3.2-1B", use_fallback_model=True):
         self.model_name = model_name
         self.original_model = model_name
+        self.response_cache = {}  # Add a cache for storing responses
         logger.info(f"Initializing {model_name} LLM processor")
         
         try:
@@ -46,15 +50,15 @@ class EnhancedLLMProcessor:
             )
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             
-            # self.llm_pipeline = pipeline(
-            #     "text-generation",
-            #     model=model_name,
-            #     tokenizer=self.tokenizer,
-            #     torch_dtype=torch_dtype,
-            #     device_map=device_map,
-            #     max_length=512,
-            #     temperature=0.7,
-            # )
+            # Compile model if PyTorch version supports it (2.0+)
+            try:
+                if hasattr(torch, 'compile') and torch.__version__ >= "2.0.0":
+                    logger.info("Compiling model with torch.compile()...")
+                    self.llm_pipeline = torch.compile(self.llm_pipeline)
+                    logger.info("Model compilation successful")
+            except Exception as compile_error:
+                logger.warning(f"Model compilation failed, continuing with uncompiled model: {compile_error}")
+                
             logger.info(f"Successfully loaded {model_name} with 4-bit quantization")
 
             logger.info("downloading nltk")
@@ -86,6 +90,12 @@ class EnhancedLLMProcessor:
         if not context_docs:
             return "I don't have specific information about that in my aging biology knowledge base. Please ask another question related to aging."
         
+        # Check if the response is already cached
+        cache_key = self._generate_cache_key(query, context_docs)
+        if cache_key in self.response_cache:
+            logger.info(f"Cache hit for query: {query}")
+            return self.response_cache[cache_key]
+        
         expanded_query = self._rewrite_query(query)
         reranked_docs = self._rerank_documents(expanded_query, context_docs)
         filtered_docs = self._filter_and_compress_context(expanded_query, reranked_docs)
@@ -97,6 +107,9 @@ class EnhancedLLMProcessor:
                 logger.info(f"Generated _generate_with_llm response: {response}")
                 verified_response = self._verify_response_factuality(query, response, filtered_docs)
                 
+                # Cache the verified response
+                self.response_cache[cache_key] = verified_response
+                
                 logger.info(f"Generated RAG response using {self.model_name} for query: {query}")
                 return verified_response
             except Exception as e:
@@ -107,6 +120,11 @@ class EnhancedLLMProcessor:
         response = self._build_enhanced_response(query, key_terms, context_docs)
         logger.info(f"Generated fallback response for query: {query}")
         return response
+    
+    def _generate_cache_key(self, query: str, context_docs: List[Dict[str, Any]]) -> str:
+        # Create a unique cache key based on the query and a hash of the context documents
+        context_hash = hashlib.md5("".join(doc['content'] for doc in context_docs).encode()).hexdigest()
+        return f"{hashlib.md5(query.encode()).hexdigest()}_{context_hash}"
     
     def _prepare_prompt(self, query: str, context_docs: List[Dict[str, Any]]) -> str:
         prompt = "You are an expert in aging biology. Answer the following question based on the provided context:\n\n"
@@ -123,18 +141,16 @@ class EnhancedLLMProcessor:
     
     def _generate_with_llm(self, prompt: str) -> str:
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.llm_pipeline.device)
-        response = self.llm_pipeline(
-            **inputs,
-            truncation=True,
-            max_length=len(prompt.split()) + 512,  
-            temperature=0.7,    
-            top_p=0.9,           
-            repetition_penalty=1.1,  
-            do_sample=True,      
-            num_return_sequences=1,
-        )
+        with torch.no_grad():
+            output = self.llm_pipeline.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                temperature=0.5,
+                top_p=0.9,           
+                num_return_sequences=1,
+            )
         
-        generated_text = response[0]['generated_text']
+        generated_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
         
         if generated_text.startswith(prompt):
             generated_text = generated_text[len(prompt):].strip()
@@ -247,16 +263,18 @@ class EnhancedLLMProcessor:
                 Original query: "{query}"
                 Expanded query:"""
                 
-                response = self.llm_pipeline(
-                    expansion_prompt,
-                    truncation=True,
-                    max_length=len(expansion_prompt.split()) + 100,
-                    temperature=0.3,
-                    do_sample=True,
-                    num_return_sequences=1,
-                )
+                inputs = self.tokenizer(expansion_prompt, return_tensors="pt").to(self.llm_pipeline.device)
                 
-                expanded_text = response[0]['generated_text']
+                with torch.no_grad():
+                    output = self.llm_pipeline.generate(
+                        **inputs,
+                        max_new_tokens=max_new_tokens,
+                        temperature=0.3,
+                        num_return_sequences=1,
+                    )
+                
+                expanded_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
+                
                 if expanded_text.startswith(expansion_prompt):
                     expanded_text = expanded_text[len(expansion_prompt):].strip()
                 
@@ -316,8 +334,8 @@ class EnhancedLLMProcessor:
         if not documents:
             return []
             
-        max_docs = 5
-        relevance_threshold = 0.1
+        max_docs = 3  # Reduced from 5
+        relevance_threshold = 0.2  # Increased from 0.1
         
         filtered_docs = []
         query_terms = set(self._extract_key_terms(query))
@@ -339,7 +357,7 @@ class EnhancedLLMProcessor:
                         scored_sentences.append((sent_relevance, sentence))
                     
                     scored_sentences.sort(reverse=True, key=lambda x: x[0])
-                    top_sentences = [s for _, s in scored_sentences[:3]]
+                    top_sentences = [s for _, s in scored_sentences[:2]]  # Reduced from 3
                     
                     compressed_content = " ".join(top_sentences)
                     compressed_doc = doc.copy()
@@ -372,16 +390,18 @@ class EnhancedLLMProcessor:
                 
             verification_prompt += "\nVerified response:"
             
-            verification = self.llm_pipeline(
-                verification_prompt,
-                truncation=True,
-                max_length=len(verification_prompt.split()),
-                temperature=0.3,
-                do_sample=True,
-                num_return_sequences=1,
-            )
+            inputs = self.tokenizer(verification_prompt, return_tensors="pt").to(self.llm_pipeline.device)
             
-            verified_text = verification[0]['generated_text']
+            with torch.no_grad():
+                output = self.llm_pipeline.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    temperature=0.3,
+                    num_return_sequences=1,
+                )
+            
+            verified_text = self.tokenizer.decode(output[0], skip_special_tokens=True)
+            
             if verified_text.startswith(verification_prompt):
                 verified_text = verified_text[len(verification_prompt):].strip()
                 
