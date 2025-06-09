@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 import re
 import torch
 import os
-from transformers import pipeline, BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM, TorchAoConfig
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, TorchAoConfig
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
 import nltk
