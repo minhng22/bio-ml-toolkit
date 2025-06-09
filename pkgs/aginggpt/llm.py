@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 import re
 import torch
 import os
-from transformers import pipeline, BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline, BitsAndBytesConfig, AutoTokenizer, AutoModelForCausalLM, TorchAoConfig
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
 import nltk
@@ -36,24 +36,25 @@ class EnhancedLLMProcessor:
         logger.info(f"Attempting to load model: {model_name}")
         
         try:
-            _ = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch_dtype,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_use_double_quant=True
+            quantization_config = TorchAoConfig("int4_weight_only", group_size=128)
+            self.llm_pipeline = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=torch.bfloat16,
+                device_map=device_map,
+                quantization_config=quantization_config,
+                low_cpu_mem_usage=True,
             )
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            #self.llm_pipeline = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
             
-            self.llm_pipeline = pipeline(
-                "text-generation",
-                model=model_name,
-                tokenizer=self.tokenizer,
-                torch_dtype=torch_dtype,
-                device_map=device_map,
-                max_length=512,
-                temperature=0.7,
-            )
+            # self.llm_pipeline = pipeline(
+            #     "text-generation",
+            #     model=model_name,
+            #     tokenizer=self.tokenizer,
+            #     torch_dtype=torch_dtype,
+            #     device_map=device_map,
+            #     max_length=512,
+            #     temperature=0.7,
+            # )
             logger.info(f"Successfully loaded {model_name} with 4-bit quantization")
 
             logger.info("downloading nltk")
@@ -121,8 +122,9 @@ class EnhancedLLMProcessor:
         return prompt
     
     def _generate_with_llm(self, prompt: str) -> str:
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.llm_pipeline.device)
         response = self.llm_pipeline(
-            prompt,
+            **inputs,
             truncation=True,
             max_length=len(prompt.split()) + 512,  
             temperature=0.7,    
