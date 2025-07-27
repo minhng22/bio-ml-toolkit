@@ -107,16 +107,14 @@ class EnhancedLLMProcessor:
         if not context_docs:
             return "I don't have specific information about that in my aging biology knowledge base. Please ask another question related to aging."
         
-        # Show funny loading message
+        # Show funny loading message (only log it, UI will get it separately)
         loading_msg = get_random_loading_message()
         logger.info(loading_msg)
-        print(f"\n{loading_msg}\n")
         
         # Check if the response is already cached
         cache_key = self._generate_cache_key(query, context_docs)
         if cache_key in self.response_cache:
             logger.info(f"Cache hit for query: {query}")
-            print("💨 Found that in my cache! (At least something's fast around here!)")
             return self.response_cache[cache_key]
         
         expanded_query = self._rewrite_query(query)
@@ -126,23 +124,22 @@ class EnhancedLLMProcessor:
         
         if self.llm_pipeline:
             try:
-                print("🎯 My budget AI is generating your response... (Quality over speed, right?)")
+                logger.info("Budget AI is generating response...")
                 response = self._generate_with_llm(prompt)
                 logger.info(f"Generated _generate_with_llm response: {response}")
                 
-                print("🔍 Double-checking facts with my thrifty fact-checker...")
+                logger.info("Double-checking facts with fact-checker...")
                 verified_response = self._verify_response_factuality(query, response, filtered_docs)
                 
                 # Cache the verified response
                 self.response_cache[cache_key] = verified_response
                 
-                print("✅ Done! (Thanks for your patience with my economical setup!)")
+                logger.info("Response generation completed successfully")
                 logger.info(f"Generated RAG response using {self.model_name} for query: {query}")
                 return verified_response
             except Exception as e:
                 logger.error(f"Error generating with {self.model_name}: {str(e)}")
                 logger.warning("Falling back to rule-based response")
-                print("💔 My budget AI had a hiccup... Falling back to basic mode!")
         
         key_terms = self._extract_key_terms(query)
         response = self._build_enhanced_response(query, key_terms, context_docs)
@@ -285,7 +282,7 @@ class EnhancedLLMProcessor:
     def _rewrite_query(self, query: str) -> str:
         if self.llm_pipeline:
             try:
-                print("🔄 Expanding your query with my penny-pinching query enhancer...")
+                logger.info("Expanding query with query enhancer...")
                 expansion_prompt = f"""You are an expert in aging biology research. 
                 Your task is to expand this search query to improve document retrieval.
                 Include key scientific concepts related to the query.
@@ -311,7 +308,6 @@ class EnhancedLLMProcessor:
                 return expanded_text
             except Exception as e:
                 logger.warning(f"Query expansion failed: {e}, using original query")
-                print("⚠️  Query expansion failed (blame the budget!), using original...")
                 
         return query
     
@@ -442,6 +438,5 @@ class EnhancedLLMProcessor:
                 
         except Exception as e:
             logger.warning(f"Response verification failed: {e}, using original response")
-            print("⚠️  Fact-checking failed (my budget AI is having a moment), using unverified response...")
             
         return response

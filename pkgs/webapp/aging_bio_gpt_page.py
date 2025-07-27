@@ -1,5 +1,6 @@
 from dash import html, dcc, callback, Input, Output, State
-from pkgs.aginggpt.service import process_query
+from pkgs.aginggpt.service import process_query, get_loading_message
+import time
 
 def aging_bio_gpt_page():
     return html.Div([
@@ -14,6 +15,14 @@ def aging_bio_gpt_page():
                     'fontSize': '16px',
                     'marginBottom': '20px',
                     'color': '#555'
+                }),
+                html.Div(id='loading-message', style={
+                    'fontSize': '16px',
+                    'color': '#888',
+                    'fontStyle': 'italic',
+                    'marginBottom': '10px',
+                    'minHeight': '20px',
+                    'textAlign': 'center'
                 }),
                 html.Div(id='loading-container', children=[
                     dcc.Loading(
@@ -87,21 +96,36 @@ def aging_bio_gpt_page():
 
 
 @callback(
-    Output('response-output', 'children'),
+    Output('loading-message', 'children'),
+    [Input('submit-button', 'n_clicks')],
+    [State('user-input', 'value')],
+    prevent_initial_call=True
+)
+def show_loading_message(n_clicks, query):
+    if not query or query.strip() == "":
+        return ""
+    
+    # Show a funny loading message
+    loading_msg = get_loading_message()
+    return loading_msg
+
+@callback(
+    [Output('response-output', 'children'),
+     Output('loading-message', 'children', allow_duplicate=True)],
     [Input('submit-button', 'n_clicks')],
     [State('user-input', 'value')],
     prevent_initial_call=True
 )
 def update_response(n_clicks, query):
     if not query or query.strip() == "":
-        return "Please ask a question about aging biology."
+        return "Please ask a question about aging biology.", ""
     
     result = process_query(query)
     
     if result["status"] == "success":
         response = result["response"]
         
-        return [
+        response_content = [
             html.P("Query: ", style={'fontWeight': 'bold'}) if query else "",
             html.P(query, style={'fontStyle': 'italic'}) if query else "",
             html.Hr() if query else "",
@@ -109,15 +133,16 @@ def update_response(n_clicks, query):
                 html.P(part) for part in response.split("\n\n")
             ])
         ]
+        return response_content, ""  # Clear loading message when done
     else:
-        return html.P(result["response"], style={'color': 'red'})
-
+        return html.P(result["response"], style={'color': 'red'}), ""
 
 @callback(
     [Output('user-input', 'value'),
-     Output('response-output', 'children', allow_duplicate=True)],
+     Output('response-output', 'children', allow_duplicate=True),
+     Output('loading-message', 'children', allow_duplicate=True)],
     [Input('clear-button', 'n_clicks')],
     prevent_initial_call=True
 )
 def clear_input(n_clicks):
-    return "", html.Div("Ask a question about aging biology research to get started.")
+    return "", html.Div("Ask a question about aging biology research to get started."), ""

@@ -1,6 +1,7 @@
 from typing import Optional, Dict, Any
 import logging
 from .model import AgingGPT
+from .llm import get_random_loading_message
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,6 +19,10 @@ def get_model_instance(knowledge_base_path: Optional[str] = None) -> AgingGPT:
         _aging_gpt_instance = AgingGPT(knowledge_base_path)
         
     return _aging_gpt_instance
+
+def get_loading_message() -> str:
+    """Get a funny loading message for the UI"""
+    return get_random_loading_message()
 
 def process_query(query_text: str) -> Dict[str, Any]:
     if not query_text or query_text.strip() == "":
