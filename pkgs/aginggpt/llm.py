@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 import re
 import torch
 import os
+import random
 from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM, TorchAoConfig
 from huggingface_hub import login
 from nltk.tokenize import sent_tokenize
@@ -17,6 +18,22 @@ except LookupError:
 logger = logging.getLogger(__name__)
 
 max_new_tokens = 100
+
+# Funny loading messages for when the model is processing
+LOADING_MESSAGES = [
+    "🧬 Consulting my budget-friendly aging biology oracle... (It's slow because I'm broke, sorry!)",
+    "⏳ Dusting off my discount AI neurons... Please hold while I count pennies!",
+    "💭 Asking my economical AI brain to think harder... (We can't afford the premium version!)",
+    "🐌 Processing at the speed of my wallet... which is pretty slow!",
+    "⚡ Firing up my budget AI engine... (It runs on hopes and dreams!)",
+    "🤖 My frugal robot is thinking... Please excuse the dial-up speed!",
+    "💸 Computing on a shoestring budget... Quality takes time when you're cheap!",
+    "🧠 My bargain-bin AI is pondering your question... (Premium speed costs extra!)",
+    "💰 Running on a budget, so please be patient while I generate your response!"]
+
+def get_random_loading_message():
+    """Get a random funny loading message"""
+    return random.choice(LOADING_MESSAGES)
 
 class EnhancedLLMProcessor:
     def __init__(self, model_name="meta-llama/Llama-3.2-1B", use_fallback_model=True):
@@ -90,10 +107,16 @@ class EnhancedLLMProcessor:
         if not context_docs:
             return "I don't have specific information about that in my aging biology knowledge base. Please ask another question related to aging."
         
+        # Show funny loading message
+        loading_msg = get_random_loading_message()
+        logger.info(loading_msg)
+        print(f"\n{loading_msg}\n")
+        
         # Check if the response is already cached
         cache_key = self._generate_cache_key(query, context_docs)
         if cache_key in self.response_cache:
             logger.info(f"Cache hit for query: {query}")
+            print("💨 Found that in my cache! (At least something's fast around here!)")
             return self.response_cache[cache_key]
         
         expanded_query = self._rewrite_query(query)
@@ -103,18 +126,23 @@ class EnhancedLLMProcessor:
         
         if self.llm_pipeline:
             try:
+                print("🎯 My budget AI is generating your response... (Quality over speed, right?)")
                 response = self._generate_with_llm(prompt)
                 logger.info(f"Generated _generate_with_llm response: {response}")
+                
+                print("🔍 Double-checking facts with my thrifty fact-checker...")
                 verified_response = self._verify_response_factuality(query, response, filtered_docs)
                 
                 # Cache the verified response
                 self.response_cache[cache_key] = verified_response
                 
+                print("✅ Done! (Thanks for your patience with my economical setup!)")
                 logger.info(f"Generated RAG response using {self.model_name} for query: {query}")
                 return verified_response
             except Exception as e:
                 logger.error(f"Error generating with {self.model_name}: {str(e)}")
                 logger.warning("Falling back to rule-based response")
+                print("💔 My budget AI had a hiccup... Falling back to basic mode!")
         
         key_terms = self._extract_key_terms(query)
         response = self._build_enhanced_response(query, key_terms, context_docs)
@@ -257,6 +285,7 @@ class EnhancedLLMProcessor:
     def _rewrite_query(self, query: str) -> str:
         if self.llm_pipeline:
             try:
+                print("🔄 Expanding your query with my penny-pinching query enhancer...")
                 expansion_prompt = f"""You are an expert in aging biology research. 
                 Your task is to expand this search query to improve document retrieval.
                 Include key scientific concepts related to the query.
@@ -282,6 +311,7 @@ class EnhancedLLMProcessor:
                 return expanded_text
             except Exception as e:
                 logger.warning(f"Query expansion failed: {e}, using original query")
+                print("⚠️  Query expansion failed (blame the budget!), using original...")
                 
         return query
     
@@ -412,5 +442,6 @@ class EnhancedLLMProcessor:
                 
         except Exception as e:
             logger.warning(f"Response verification failed: {e}, using original response")
+            print("⚠️  Fact-checking failed (my budget AI is having a moment), using unverified response...")
             
         return response
