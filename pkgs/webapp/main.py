@@ -201,4 +201,4 @@ if __name__ == '__main__':
     except Exception as e:
         logger.error(f"Error preloading AgingGPT model: {e}")
     
-    app.run_server(host="192.168.0.32", port=8050, debug=False)
+    app.run(debug=False, host='0.0.0.0', port=8050)
