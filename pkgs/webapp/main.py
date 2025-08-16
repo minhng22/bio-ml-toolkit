@@ -1,44 +1,12 @@
 import dash
-import argparse
 import logging
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from pkgs.webapp.meldna_page import meldna_score_page
-from pkgs.webapp.stem_cell_page import stem_cell_page, update_uploaded_files, update_prediction_output
-from pkgs.webapp.aging_bio_gpt_page import aging_bio_gpt_page, update_response, clear_input
-from pkgs.aginggpt.service import get_model_instance
-import gc
 
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-def init_aging_gpt_with_samples():
-    try:
-        from pkgs.aginggpt.service import get_model_instance
-        from pkgs.aginggpt.data_loader import PubMedAbstractLoader
-        
-        logger.info("Initializing AgingGPT with sample PubMed data...")
-        model = get_model_instance()
-        loader = PubMedAbstractLoader()
-        
-        abstracts = loader.load("")
-        
-        for abstract in abstracts:
-            model.add_knowledge(abstract["content"], abstract["metadata"].get("title", "PubMed"))
-            
-        logger.info(f"Added {len(abstracts)} sample abstracts to AgingGPT knowledge base")
-        
-    except Exception as e:
-        logger.error(f"Error initializing AgingGPT with samples: {e}")
-
-parser = argparse.ArgumentParser(description='Bio ML Toolkit Server')
-parser.add_argument('--init-aging-gpt', action='store_true', 
-                    help='Initialize AgingGPT with sample data')
-args, unknown = parser.parse_known_args()
-
-if args.init_aging_gpt:
-    init_aging_gpt_with_samples()
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "ML Toolkit Showcase"
@@ -60,24 +28,6 @@ app.layout = html.Div([
         dcc.Link(html.Span("🔬 Predict MELDNa Score", style={
             'marginLeft': '5px'
         }), href="/meldna-score", style={
-            'margin': '10px 0',
-            'textDecoration': 'none',
-            'color': 'black',
-            'fontSize': '14px',
-            'fontFamily': 'Arial, sans-serif'
-        }),
-        dcc.Link(html.Span("🔬 Classify Stem Cell Differentiation", style={
-            'marginLeft': '5px'
-        }), href="/stem-cell", style={
-            'margin': '10px 0',
-            'textDecoration': 'none',
-            'color': 'black',
-            'fontSize': '14px',
-            'fontFamily': 'Arial, sans-serif'
-        }),
-        dcc.Link(html.Span("🔬 Query Aging Biology Knowledge", style={
-            'marginLeft': '5px'
-        }), href="/aging-bio-gpt", style={
             'margin': '10px 0',
             'textDecoration': 'none',
             'color': 'black',
@@ -125,29 +75,13 @@ app.layout = html.Div([
 
 @app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == '/stem-cell':
-        return stem_cell_page()
-    elif pathname == '/meldna-score':
+    if pathname == '/meldna-score':
         return meldna_score_page()
-    elif pathname == '/aging-bio-gpt':
-        return aging_bio_gpt_page()
     else:
         return html.Div(
             "🌟 Explore advanced machine learning tools for predictive modeling and data analysis. 🌟",
             style={'textAlign': 'center'}
         )
-
-app.callback(
-    Output('upload-stem-cell', 'children'),
-    [Input('upload-stem-cell', 'contents')],
-    [State('upload-stem-cell', 'filename')]
-)(update_uploaded_files)
-
-app.callback(
-    Output('prediction-output', 'children'),
-    [Input('predict-button', 'n_clicks')],
-    [State('upload-stem-cell', 'contents'), State('model-dropdown', 'value')]
-)(update_prediction_output)
 
 app.clientside_callback(
     """
@@ -193,12 +127,4 @@ app.clientside_callback(
 )
 
 if __name__ == '__main__':
-    try:
-        gc.collect()
-        logger.info("Preloading AgingGPT model...")
-        get_model_instance()
-        logger.info("AgingGPT model loaded successfully")
-    except Exception as e:
-        logger.error(f"Error preloading AgingGPT model: {e}")
-    
     app.run(debug=False, host='0.0.0.0', port=8050)
